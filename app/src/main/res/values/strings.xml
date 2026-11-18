@@ -1,0 +1,24 @@
+<resources>
+    <string name="app_name">ポモドーロタイマー</string>
+    <string name="settings_title">ポモドーロタイマー</string>
+    <string name="set_count_label">セット数</string>
+    <string name="long_break_label">長い休憩（分）</string>
+    <string name="reset">リセット</string>
+    <string name="start">開始</string>
+    <string name="phase_work">集中</string>
+    <string name="phase_short_break">休憩</string>
+    <string name="phase_long_break">長い休憩</string>
+    <string name="phase_finished">完了</string>
+    <string name="pause">一時停止</string>
+    <string name="resume">再開</string>
+    <string name="end">終了</string>
+    <string name="notification_channel_name">タイマー</string>
+    <string name="notification_title">ポモドーロタイマー</string>
+    <string name="notification_running">実行中</string>
+    <string name="notification_paused">一時停止中</string>
+    <string name="set_progress_format">セット %1$d / %2$d</string>
+    <string name="decrease_set_count">セット数を減らす</string>
+    <string name="increase_set_count">セット数を増やす</string>
+    <string name="decrease_break">長い休憩時間を減らす</string>
+    <string name="increase_break">長い休憩時間を増やす</string>
+</resources>
