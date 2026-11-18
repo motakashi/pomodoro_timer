@@ -1,4 +1,4 @@
-package com.example.pomodorotimer
+package motakashi.androidapp.pomodorotimer
 
 import android.Manifest
 import android.app.Activity
@@ -7,14 +7,13 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
-import android.content.res.ColorStateList
 import android.os.Build
 import android.os.Bundle
+import android.os.SystemClock
 import android.view.View
 import android.widget.Button
-import android.widget.ProgressBar
 import android.widget.TextView
-import java.util.Locale
+import kotlin.math.roundToInt
 
 class MainActivity : Activity() {
     private val stateReceiver = object : BroadcastReceiver() {
@@ -42,7 +41,7 @@ class MainActivity : Activity() {
     private lateinit var setProgress: TextView
     private lateinit var phaseLabel: TextView
     private lateinit var timeRemaining: TextView
-    private lateinit var timeProgress: ProgressBar
+    private lateinit var timeProgress: MinuteProgressView
     private lateinit var pauseButton: Button
     private lateinit var resumeButton: Button
 
@@ -79,6 +78,10 @@ class MainActivity : Activity() {
     private fun bindViews() {
         settingsPanel = findViewById(R.id.settings_panel)
         timerPanel = findViewById(R.id.timer_panel)
+        timerPanel.background = TimerGridDrawable(
+            20 * resources.displayMetrics.density,
+            getColor(R.color.screen_background)
+        )
         setCount = findViewById(R.id.set_count)
         breakMinutes = findViewById(R.id.break_minutes)
         setProgress = findViewById(R.id.set_progress)
@@ -170,21 +173,23 @@ class MainActivity : Activity() {
         phaseLabel.text = labelForPhase(phase)
 
         val seconds = (remainingMillis + 999L) / 1000L
-        timeRemaining.text =
-            String.format(Locale.ROOT, "%02d:%02d", seconds / 60L, seconds % 60L)
-
-        val progress = if (phaseDurationMillis == 0L) {
-            0
+        timeRemaining.text = getString(R.string.time_remaining_format, seconds / 60L, seconds % 60L)
+        val percent = if (phaseDurationMillis > 0L) {
+            (100.0 * remainingMillis / phaseDurationMillis).roundToInt()
         } else {
-            (remainingMillis * 1000L / phaseDurationMillis).coerceAtMost(1000L).toInt()
+            0
         }
-        timeProgress.progress = progress
-        val color = when {
-            progress <= 330 -> 0xFFD32F2F.toInt()
-            progress <= 660 -> 0xFFF9A825.toInt()
-            else -> 0xFF388E3C.toInt()
-        }
-        timeProgress.progressTintList = ColorStateList.valueOf(color)
+        timeRemaining.setTextColor(when {
+            percent >= 67 -> 0xFF207249.toInt()
+            percent >= 34 -> 0xFF856100.toInt()
+            else -> 0xFFB52D40.toInt()
+        })
+        timeProgress.render(
+            remainingMillis,
+            phaseDurationMillis,
+            state.getLongExtra(TimerService.EXTRA_SAMPLED_AT_MILLIS, SystemClock.elapsedRealtime()),
+            running = !paused && !finished
+        )
 
         pauseButton.visibility = if (paused || finished) View.GONE else View.VISIBLE
         resumeButton.visibility = if (paused && !finished) View.VISIBLE else View.GONE

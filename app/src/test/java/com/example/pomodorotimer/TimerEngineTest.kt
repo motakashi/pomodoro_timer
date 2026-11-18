@@ -1,4 +1,4 @@
-package com.example.pomodorotimer
+package motakashi.androidapp.pomodorotimer
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse

@@ -1,4 +1,4 @@
-package com.example.pomodorotimer
+package motakashi.androidapp.pomodorotimer
 
 import android.app.Notification
 import android.app.NotificationChannel
@@ -6,11 +6,16 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
 import android.content.Intent
+import android.media.AudioAttributes
 import android.os.Build
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
 import android.os.SystemClock
+import android.os.VibrationAttributes
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
 
 class TimerService : Service() {
     private val handler = Handler(Looper.getMainLooper())
@@ -19,7 +24,7 @@ class TimerService : Service() {
     private val tick = object : Runnable {
         override fun run() {
             val timer = engine ?: return
-            val changed = timer.advance(SystemClock.elapsedRealtime())
+            val changed = advanceWithVibration(timer, SystemClock.elapsedRealtime())
             broadcastState()
             if (changed || timer.isFinished) {
                 updateNotification()
@@ -52,7 +57,9 @@ class TimerService : Service() {
                 handler.postDelayed(tick, TICK_INTERVAL_MILLIS)
             }
             ACTION_PAUSE -> engine?.let { timer ->
-                timer.pause(SystemClock.elapsedRealtime())
+                val now = SystemClock.elapsedRealtime()
+                advanceWithVibration(timer, now)
+                timer.pause(now)
                 handler.removeCallbacks(tick)
                 broadcastState()
                 updateNotification()
@@ -79,7 +86,7 @@ class TimerService : Service() {
                     broadcastNoSession()
                     stopSelf(startId)
                 } else {
-                    if (timer.advance(SystemClock.elapsedRealtime())) {
+                    if (advanceWithVibration(timer, SystemClock.elapsedRealtime())) {
                         updateNotification()
                     }
                     broadcastState()
@@ -99,8 +106,39 @@ class TimerService : Service() {
         super.onDestroy()
     }
 
+    private fun advanceWithVibration(timer: TimerEngine, now: Long): Boolean {
+        val changed = timer.advance(now)
+        if (changed) vibrateForPhaseChange()
+        return changed
+    }
+
+    @Suppress("DEPRECATION")
+    private fun vibrateForPhaseChange() {
+        val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            getSystemService(VibratorManager::class.java)?.defaultVibrator
+        } else {
+            getSystemService(Vibrator::class.java)
+        } ?: return
+        if (!vibrator.hasVibrator()) return
+
+        val durationMillis = 2_000L
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val effect = VibrationEffect.createOneShot(durationMillis, VibrationEffect.DEFAULT_AMPLITUDE)
+            vibrator.vibrate(effect, VibrationAttributes.createForUsage(VibrationAttributes.USAGE_ALARM))
+        } else {
+            val attributes = AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_ALARM).build()
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                val effect = VibrationEffect.createOneShot(durationMillis, VibrationEffect.DEFAULT_AMPLITUDE)
+                vibrator.vibrate(effect, attributes)
+            } else {
+                vibrator.vibrate(durationMillis, attributes)
+            }
+        }
+    }
+
     private fun broadcastState() {
         val timer = engine ?: return broadcastNoSession()
+        val sampledAtMillis = SystemClock.elapsedRealtime()
         val state = Intent(ACTION_STATE).apply {
             setPackage(packageName)
             putExtra(EXTRA_HAS_SESSION, true)
@@ -108,7 +146,8 @@ class TimerService : Service() {
             putExtra(EXTRA_CURRENT_SET, timer.currentSet)
             putExtra(EXTRA_LONG_BREAK_MINUTES, timer.longBreakMinutes)
             putExtra(EXTRA_PHASE, timer.phase.name)
-            putExtra(EXTRA_REMAINING_MILLIS, timer.getRemainingMillis(SystemClock.elapsedRealtime()))
+            putExtra(EXTRA_REMAINING_MILLIS, timer.getRemainingMillis(sampledAtMillis))
+            putExtra(EXTRA_SAMPLED_AT_MILLIS, sampledAtMillis)
             putExtra(EXTRA_PHASE_DURATION_MILLIS, timer.phaseDurationMillis)
             putExtra(EXTRA_PAUSED, timer.isPaused)
             putExtra(EXTRA_FINISHED, timer.isFinished)
@@ -187,18 +226,19 @@ class TimerService : Service() {
     }
 
     companion object {
-        const val ACTION_START = "com.example.pomodorotimer.START"
-        const val ACTION_PAUSE = "com.example.pomodorotimer.PAUSE"
-        const val ACTION_RESUME = "com.example.pomodorotimer.RESUME"
-        const val ACTION_STOP = "com.example.pomodorotimer.STOP"
-        const val ACTION_QUERY = "com.example.pomodorotimer.QUERY"
-        const val ACTION_STATE = "com.example.pomodorotimer.STATE"
+        const val ACTION_START = "motakashi.androidapp.pomodorotimer.START"
+        const val ACTION_PAUSE = "motakashi.androidapp.pomodorotimer.PAUSE"
+        const val ACTION_RESUME = "motakashi.androidapp.pomodorotimer.RESUME"
+        const val ACTION_STOP = "motakashi.androidapp.pomodorotimer.STOP"
+        const val ACTION_QUERY = "motakashi.androidapp.pomodorotimer.QUERY"
+        const val ACTION_STATE = "motakashi.androidapp.pomodorotimer.STATE"
         const val EXTRA_TOTAL_SETS = "total_sets"
         const val EXTRA_LONG_BREAK_MINUTES = "long_break_minutes"
         const val EXTRA_HAS_SESSION = "has_session"
         const val EXTRA_CURRENT_SET = "current_set"
         const val EXTRA_PHASE = "phase"
         const val EXTRA_REMAINING_MILLIS = "remaining_millis"
+        const val EXTRA_SAMPLED_AT_MILLIS = "sampled_at_millis"
         const val EXTRA_PHASE_DURATION_MILLIS = "phase_duration_millis"
         const val EXTRA_PAUSED = "paused"
         const val EXTRA_FINISHED = "finished"

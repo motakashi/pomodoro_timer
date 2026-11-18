@@ -4,11 +4,16 @@ plugins {
 }
 
 android {
-    namespace = "com.example.pomodorotimer"
+    namespace = "motakashi.androidapp.pomodorotimer"
     compileSdk = 35
 
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+
     defaultConfig {
-        applicationId = "com.example.pomodorotimer"
+        applicationId = "motakashi.androidapp.pomodorotimer"
         minSdk = 23
         targetSdk = 35
         versionCode = 1

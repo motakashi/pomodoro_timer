@@ -1,4 +1,4 @@
-package com.example.pomodorotimer
+package motakashi.androidapp.pomodorotimer
 
 class TimerEngine {
     enum class Phase {
@@ -62,7 +62,7 @@ class TimerEngine {
                 endAtMillis = nextPhaseStart + phaseDurationMillis
             } else if (currentSet == totalSets) {
                 phase = Phase.FINISHED
-                phaseDurationMillis = 0L
+                // Keep the final phase duration so its empty minute blocks can still be shown.
                 pausedRemainingMillis = 0L
                 isFinished = true
             } else {
