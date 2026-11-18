@@ -7,7 +7,7 @@ import org.junit.Test
 
 class TimerEngineTest {
     @Test
-    fun usesLongBreakAfterFourthSetWhenAnotherSetRemains() {
+    fun `4セット目終了後にまだセットが残っている場合は長い休憩に入る`() {
         val engine = TimerEngine()
         engine.start(5, 20, 0L)
 
@@ -27,7 +27,7 @@ class TimerEngineTest {
     }
 
     @Test
-    fun finishesWithShortBreakWhenTotalIsExactlyFourSets() {
+    fun `合計4セットの場合は4セット目の短い休憩終了後に終了する`() {
         val engine = TimerEngine()
         engine.start(4, 20, 0L)
 
@@ -42,7 +42,7 @@ class TimerEngineTest {
     }
 
     @Test
-    fun pauseAndResumePreserveRemainingTime() {
+    fun `一時停止と再開後も残り時間が保持される`() {
         val engine = TimerEngine()
         engine.start(2, 20, 0L)
         engine.pause(10L * MINUTE)
@@ -58,7 +58,7 @@ class TimerEngineTest {
     }
 
     @Test
-    fun catchesUpAcrossSeveralPhasesAfterDelayedTick() {
+    fun `大幅に遅延したTickでも複数のフェーズをまたいで追いつくことができる`() {
         val engine = TimerEngine()
         engine.start(5, 20, 0L)
 
@@ -66,6 +66,44 @@ class TimerEngineTest {
         assertEquals(5, engine.currentSet)
         assertEquals(TimerEngine.Phase.WORK, engine.phase)
         assertEquals(25L * MINUTE, engine.getRemainingMillis(135L * MINUTE))
+    }
+
+    @Test
+    fun `一時停止中はadvanceを実行してもフェーズが遷移せずfalseを返す`() {
+        val engine = TimerEngine()
+        engine.start(1, 20, 0L)
+        engine.pause(10L * MINUTE)
+
+        assertTrue(engine.isPaused)
+        val initialPhase = engine.phase
+        val result = engine.advance(30L * MINUTE)
+
+        assertFalse(result)
+        assertEquals(initialPhase, engine.phase)
+    }
+
+    @Test
+    fun `終了後はadvanceを実行してもフェーズが遷移せずfalseを返す`() {
+        val engine = TimerEngine()
+        engine.start(1, 20, 0L)
+        engine.advance(30L * MINUTE)
+
+        assertTrue(engine.isFinished)
+        val result = engine.advance(60L * MINUTE)
+
+        assertFalse(result)
+        assertEquals(TimerEngine.Phase.FINISHED, engine.phase)
+    }
+
+    @Test
+    fun `終了後はgetRemainingMillisを実行すると0を返す`() {
+        val engine = TimerEngine()
+        engine.start(1, 20, 0L)
+        engine.advance(30L * MINUTE)
+
+        assertTrue(engine.isFinished)
+        assertEquals(0L, engine.getRemainingMillis(30L * MINUTE))
+        assertEquals(0L, engine.getRemainingMillis(60L * MINUTE))
     }
 
     private companion object {

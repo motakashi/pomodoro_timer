@@ -17,6 +17,9 @@ import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
 
+/**
+ * バックグラウンドでタイマーを進行させ、通知と画面へ状態を配信するサービスです。
+ */
 class TimerService : Service() {
     private val handler = Handler(Looper.getMainLooper())
     private var engine: TimerEngine? = null
@@ -35,11 +38,22 @@ class TimerService : Service() {
         }
     }
 
+    /**
+     * サービス生成時に通知チャンネルを準備します。
+     */
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
     }
 
+    /**
+     * 受け取ったアクションに応じてタイマーを開始・制御・停止します。
+     *
+     * @param intent タイマー操作を指定するインテント
+     * @param flags サービス開始時のフラグ
+     * @param startId 開始要求を識別する ID
+     * @return サービスを再作成した際に意図しない再開を行わない指定
+     */
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
             ACTION_START -> {
@@ -99,13 +113,26 @@ class TimerService : Service() {
         return START_NOT_STICKY
     }
 
+    /**
+     * バインドによる接続は提供しません。
+     */
     override fun onBind(intent: Intent?): IBinder? = null
 
+    /**
+     * サービス破棄時にタイマー更新処理を停止します。
+     */
     override fun onDestroy() {
         handler.removeCallbacks(tick)
         super.onDestroy()
     }
 
+    /**
+     * タイマーを進め、フェーズが変わった場合に振動を発生させます。
+     *
+     * @param timer 更新対象のタイマーエンジン
+     * @param now 現在の経過時間（ミリ秒）
+     * @return フェーズが遷移した場合は true
+     */
     private fun advanceWithVibration(timer: TimerEngine, now: Long): Boolean {
         val changed = timer.advance(now)
         if (changed) vibrateForPhaseChange()
@@ -113,6 +140,9 @@ class TimerService : Service() {
     }
 
     @Suppress("DEPRECATION")
+    /**
+     * フェーズ変更を知らせるアラーム用途の振動を発生させます。
+     */
     private fun vibrateForPhaseChange() {
         val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             getSystemService(VibratorManager::class.java)?.defaultVibrator
@@ -136,6 +166,9 @@ class TimerService : Service() {
         }
     }
 
+    /**
+     * 現在のタイマー状態をアクティビティへブロードキャストします。
+     */
     private fun broadcastState() {
         val timer = engine ?: return broadcastNoSession()
         val sampledAtMillis = SystemClock.elapsedRealtime()
@@ -155,6 +188,9 @@ class TimerService : Service() {
         sendBroadcast(state)
     }
 
+    /**
+     * タイマーセッションが存在しないことをアクティビティへ通知します。
+     */
     private fun broadcastNoSession() {
         val state = Intent(ACTION_STATE).apply {
             setPackage(packageName)
@@ -163,6 +199,9 @@ class TimerService : Service() {
         sendBroadcast(state)
     }
 
+    /**
+     * フォアグラウンドサービス用の通知チャンネルを作成します。
+     */
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
@@ -177,6 +216,11 @@ class TimerService : Service() {
         }
     }
 
+    /**
+     * 現在のタイマー状態を表示する通知を生成します。
+     *
+     * @return タイマー通知
+     */
     private fun buildNotification(): Notification {
         val launchIntent = Intent(this, MainActivity::class.java)
         val contentIntent = PendingIntent.getActivity(
@@ -213,6 +257,12 @@ class TimerService : Service() {
             .build()
     }
 
+    /**
+     * タイマーフェーズに対応する通知表示用ラベルを取得します。
+     *
+     * @param phase 対象のタイマーフェーズ
+     * @return 表示用のフェーズラベル
+     */
     private fun phaseLabel(phase: TimerEngine.Phase): String = when (phase) {
         TimerEngine.Phase.WORK -> getString(R.string.phase_work)
         TimerEngine.Phase.SHORT_BREAK -> getString(R.string.phase_short_break)
@@ -220,6 +270,9 @@ class TimerService : Service() {
         TimerEngine.Phase.FINISHED -> getString(R.string.phase_finished)
     }
 
+    /**
+     * 現在のタイマー状態で通知を更新します。
+     */
     private fun updateNotification() {
         getSystemService(NotificationManager::class.java)
             .notify(NOTIFICATION_ID, buildNotification())

@@ -15,8 +15,14 @@ import android.widget.Button
 import android.widget.TextView
 import kotlin.math.roundToInt
 
+/**
+ * ポモドーロタイマーの設定画面とタイマー画面を管理するアクティビティです。
+ */
 class MainActivity : Activity() {
     private val stateReceiver = object : BroadcastReceiver() {
+        /**
+         * タイマーサービスから通知された状態を画面へ反映します。
+         */
         override fun onReceive(context: Context?, intent: Intent?) {
             if (intent?.action != TimerService.ACTION_STATE) {
                 return
@@ -45,6 +51,9 @@ class MainActivity : Activity() {
     private lateinit var pauseButton: Button
     private lateinit var resumeButton: Button
 
+    /**
+     * アクティビティを初期化し、画面部品と初期設定を準備します。
+     */
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -54,6 +63,9 @@ class MainActivity : Activity() {
         requestNotificationPermission()
     }
 
+    /**
+     * タイマーサービスからの状態通知を購読し、現在の状態を要求します。
+     */
     override fun onStart() {
         super.onStart()
         val filter = IntentFilter(TimerService.ACTION_STATE)
@@ -67,6 +79,9 @@ class MainActivity : Activity() {
         sendServiceCommand(TimerService.ACTION_QUERY)
     }
 
+    /**
+     * タイマーサービスからの状態通知を購読解除します。
+     */
     override fun onStop() {
         if (receiverRegistered) {
             unregisterReceiver(stateReceiver)
@@ -75,6 +90,9 @@ class MainActivity : Activity() {
         super.onStop()
     }
 
+    /**
+     * レイアウト内のビューを取得し、各種クリック処理を設定します。
+     */
     private fun bindViews() {
         settingsPanel = findViewById(R.id.settings_panel)
         timerPanel = findViewById(R.id.timer_panel)
@@ -123,11 +141,17 @@ class MainActivity : Activity() {
         }
     }
 
+    /**
+     * 選択中のセット数と長い休憩時間を設定画面へ表示します。
+     */
     private fun renderSettings() {
         setCount.text = selectedSets.toString()
         breakMinutes.text = selectedLongBreakMinutes.toString()
     }
 
+    /**
+     * 現在の設定でタイマーサービスを開始します。
+     */
     private fun startTimer() {
         val intent = Intent(this, TimerService::class.java).apply {
             action = TimerService.ACTION_START
@@ -142,6 +166,11 @@ class MainActivity : Activity() {
         showTimer()
     }
 
+    /**
+     * 指定したアクションをタイマーサービスへ送信します。
+     *
+     * @param action タイマーサービスが処理するアクション
+     */
     private fun sendServiceCommand(action: String) {
         val intent = Intent(this, TimerService::class.java).apply {
             this.action = action
@@ -149,16 +178,27 @@ class MainActivity : Activity() {
         startService(intent)
     }
 
+    /**
+     * 設定パネルを表示し、タイマーパネルを非表示にします。
+     */
     private fun showSettings() {
         settingsPanel.visibility = View.VISIBLE
         timerPanel.visibility = View.GONE
     }
 
+    /**
+     * タイマーパネルを表示し、設定パネルを非表示にします。
+     */
     private fun showTimer() {
         settingsPanel.visibility = View.GONE
         timerPanel.visibility = View.VISIBLE
     }
 
+    /**
+     * サービスから受け取ったタイマー状態を画面へ描画します。
+     *
+     * @param state タイマー状態を格納したインテント
+     */
     private fun renderState(state: Intent) {
         val currentSet = state.getIntExtra(TimerService.EXTRA_CURRENT_SET, 1)
         val totalSets = state.getIntExtra(TimerService.EXTRA_TOTAL_SETS, DEFAULT_SETS)
@@ -195,6 +235,12 @@ class MainActivity : Activity() {
         resumeButton.visibility = if (paused && !finished) View.VISIBLE else View.GONE
     }
 
+    /**
+     * フェーズ名に対応する表示用ラベルを取得します。
+     *
+     * @param phase タイマーサービスから受け取ったフェーズ名
+     * @return 画面に表示するフェーズラベル
+     */
     private fun labelForPhase(phase: String?): String = when (phase) {
         TimerEngine.Phase.WORK.name -> getString(R.string.phase_work)
         TimerEngine.Phase.SHORT_BREAK.name -> getString(R.string.phase_short_break)
@@ -202,6 +248,9 @@ class MainActivity : Activity() {
         else -> getString(R.string.phase_finished)
     }
 
+    /**
+     * Android 13 以降で通知権限を必要に応じて要求します。
+     */
     private fun requestNotificationPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
             && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)

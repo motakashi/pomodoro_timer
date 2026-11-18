@@ -12,6 +12,9 @@ import android.os.SystemClock
 import android.util.AttributeSet
 import android.view.View
 
+/**
+ * 残り時間を1分単位のカラーブロックで表示するカスタムビューです。
+ */
 class MinuteProgressView(context: Context, attrs: AttributeSet) : View(context, attrs) {
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val density = resources.displayMetrics.density
@@ -23,6 +26,14 @@ class MinuteProgressView(context: Context, attrs: AttributeSet) : View(context, 
     private var sampledAtMillis = 0L
     private var running = false
 
+    /**
+     * タイマーの状態を更新して再描画します。
+     *
+     * @param remainingMillis フェーズの残り時間（ミリ秒）
+     * @param durationMillis フェーズ全体の時間（ミリ秒）
+     * @param sampledAtMillis 残り時間を取得した時点の経過時間（ミリ秒）
+     * @param running タイマーが進行中かどうか
+     */
     fun render(remainingMillis: Long, durationMillis: Long, sampledAtMillis: Long, running: Boolean) {
         this.durationMillis = durationMillis
         this.remainingMillis = remainingMillis
@@ -31,6 +42,9 @@ class MinuteProgressView(context: Context, attrs: AttributeSet) : View(context, 
         invalidate()
     }
 
+    /**
+     * ビューのサイズ変更時に、表示用グラデーションを作成します。
+     */
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
         if (w == 0 || h == 0) return
@@ -49,6 +63,9 @@ class MinuteProgressView(context: Context, attrs: AttributeSet) : View(context, 
         )
     }
 
+    /**
+     * 残り時間に応じた分単位のブロックと装飾を描画します。
+     */
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
         if (durationMillis <= 0L || width == 0 || height == 0) return
@@ -98,12 +115,18 @@ class MinuteProgressView(context: Context, attrs: AttributeSet) : View(context, 
     }
 }
 
+/**
+ * タイマー画面の背景に方眼を描画する Drawable です。
+ */
 internal class TimerGridDrawable(
     private val spacing: Float,
     private val backgroundColor: Int
 ) : Drawable() {
     private val paint = Paint().apply { color = 0xFFB8C8E0.toInt() }
 
+    /**
+     * 背景色と方眼線をキャンバスへ描画します。
+     */
     override fun draw(canvas: Canvas) {
         canvas.drawColor(backgroundColor)
         var x = bounds.exactCenterX() % spacing
@@ -118,10 +141,19 @@ internal class TimerGridDrawable(
         }
     }
 
+    /**
+     * 描画に使用する透明度を設定します。
+     */
     override fun setAlpha(alpha: Int) { paint.alpha = alpha }
 
+    /**
+     * 描画に使用するカラーフィルターを設定します。
+     */
     override fun setColorFilter(colorFilter: ColorFilter?) { paint.colorFilter = colorFilter }
 
     @Suppress("DEPRECATION")
+    /**
+     * Drawable の不透明度を返します。
+     */
     override fun getOpacity(): Int = PixelFormat.OPAQUE
 }
