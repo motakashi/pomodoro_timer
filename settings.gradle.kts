@@ -15,4 +15,4 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "PomodoroTimer"
-include(":app")
+include(":app", ":e2e")
