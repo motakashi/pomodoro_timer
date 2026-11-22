@@ -4,6 +4,12 @@ plugins {
     id("jacoco")
 }
 
+kotlin {
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+    }
+}
+
 configure<JacocoPluginExtension> {
     toolVersion = "0.8.12"
 }
@@ -69,6 +75,7 @@ tasks.register<JacocoReport>("jacocoTestReport") {
 }
 
 dependencies {
+    implementation("androidx.core:core:1.16.0")
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.robolectric:robolectric:4.18.1")
     testImplementation("androidx.test.ext:junit:1.3.0")
